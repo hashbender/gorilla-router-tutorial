@@ -60,15 +60,16 @@ func NewRouter(c AppContext) *mux.Router {
 			Methods(route.Method...).
 			Path(route.Pattern).
 			Name(route.Name).
-			Handler(CheckAuth(route.ContextedHandler))
+			Handler(CheckAuth(SetContentTypeText(route.ContextedHandler)))
 	}
 
 	return router
 }
 
-//CheckAuth is an example middleware which
+//CheckAuth is an example middleware which demonstrates how we *might* check auth.
 func CheckAuth(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Println("Checking Auth")
 		//TODO this is just an example.
 		//Get the cookie or something and check it
 		cookie, err := r.Cookie("session")
@@ -77,6 +78,15 @@ func CheckAuth(h http.Handler) http.Handler {
 			// http.Redirect(w, r, "/", 401)
 		}
 		//If the auth check passes, then handle continue down the chain
+		h.ServeHTTP(w, r)
+	})
+}
+
+//SetContentTypeText this only exists to demonstrate how we can chain middlewares
+func SetContentTypeText(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Println("Setting Headers")
+		w.Header().Set("Content-Type", "text/plain")
 		h.ServeHTTP(w, r)
 	})
 }
@@ -117,13 +127,13 @@ var routes = Routes{
 		"HelloWorld",
 		//You can handle more than just GET requests here
 		[]string{"GET"},
-		"/hello_world",
+		"/hello",
 		&ContextedHandler{&appContext, HelloWorldHandler},
 	},
 	Route{
 		"GoodbyeWorld",
 		[]string{"GET"},
-		"/goodbye_world",
+		"/goodbye",
 		&ContextedHandler{&appContext, GoodbyeWorldHandler},
 	},
 }
